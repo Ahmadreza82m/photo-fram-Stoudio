@@ -1,24 +1,26 @@
 # PhotoFrame Studio
 
-**Professional Batch Image Preparation** — Android-native Kotlin + Jetpack Compose.
+**Professional Batch Image Preparation** — native Android application built with Kotlin, Jetpack Compose, Android Storage Access Framework, Android Bitmap and OpenCV.
 
 ## Implemented on development
-- Multi-image import and recursive image-folder scan (JPG/JPEG, PNG, WEBP, BMP).
-- Android Storage Access Framework with persisted URI permissions where supported.
-- Separate output folder and collision-safe output names.
-- Independent crop-in and extend-out controls for top, bottom, left and right.
-- PNG/JPEG output with adjustable JPEG quality.
-- Sequential batch processing, progress, pause/resume, stop, error report and retry failed items.
-- Processing settings saved between launches.
-- OpenCV-based reference-frame candidate detection and transfer of crop coordinates.
-- Reference-derived crop values can be stored as normalized proportions and scaled to images with different dimensions; manually editing a side switches that side back to fixed source pixels.
-- Original source images are never overwritten.
+- Multi-image import and recursive image-folder scanning (JPG/JPEG, PNG, WEBP, BMP).
+- Persisted SAF permissions where supported by Android document providers.
+- Independent output directory selection and collision-safe output filenames.
+- Four independent edge controls: crop inward and extend outward for top, bottom, left and right.
+- PNG and JPEG export with configurable JPEG quality.
+- Sequential batch processing, progress, pause/resume, stop, failure report and retry-only-failed.
+- Settings persisted between launches.
+- OpenCV candidate rectangle detection from a selected reference image.
+- Reference crop coordinates can be stored as normalized proportions and applied to images of different dimensions.
+- Before/after preview for the first selected image, recalculated when adjustments change.
+- Original source files are never overwritten.
 
-## Current limitations
-- OpenCV detection is heuristic, not guaranteed recognition; candidates must be reviewed.
-- Before/after visual preview, draggable coordinate overlay, three comparison sizes and saved project/template library remain.
+## Known limitations / remaining work
+- OpenCV detection is heuristic; it may select a shadow, artwork border or unrelated rectangle. Review the candidate before applying it.
+- The current preview is downscaled for responsiveness and is not a print-resolution proof.
+- Draggable manual frame-coordinate overlay, three test-size variants and saved project/template library remain to be implemented.
 - TIFF decoding, EXIF orientation normalization, ICC profile preservation and tiled full-resolution processing remain.
-- Very large images may be downsampled to limit memory, so this is not yet a full-resolution print pipeline.
+- Very large images may be downsampled to limit memory; this is not yet a full-resolution tiled print pipeline.
 
 ## Build
 Use JDK 17 and Android SDK 35:
