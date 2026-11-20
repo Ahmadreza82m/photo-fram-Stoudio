@@ -159,8 +159,8 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                     }
                     item {
                         GlassCard {
-                            SectionHeading("تنظیمات چهارطرفه", Icons.Rounded.Tune)
-                            Text("مقادیر برحسب پیکسل تصویر اصلی هستند. برش به داخل و حاشیه به بیرون مستقل تنظیم می‌شوند.", color = Color(0xFF9EB4D0), style = MaterialTheme.typography.bodySmall)
+                            SectionHeading("تنظیمات کادر و پس‌زمینه", Icons.Rounded.Tune)
+                            Text("برش و امتداد هر ضلع مستقل است. فضای خالی به‌صورت خودکار با ادامه‌دادن روند رنگ از لبه‌های همان عکس پر می‌شود؛ این روش برای زمینه‌های ساده و گرادیانی مناسب‌تر است و بافت‌های پیچیده ممکن است به اصلاح دستی نیاز داشته باشند.", color = Color(0xFF9EB4D0), style = MaterialTheme.typography.bodySmall)
                             EdgeEditor("لبه بالا", state.adjustments.top) { vm.updateAdjustments(state.adjustments.copy(top = it)) }
                             EdgeEditor("لبه پایین", state.adjustments.bottom) { vm.updateAdjustments(state.adjustments.copy(bottom = it)) }
                             EdgeEditor("لبه چپ", state.adjustments.left) { vm.updateAdjustments(state.adjustments.copy(left = it)) }
@@ -205,7 +205,7 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                             Icon(Icons.Rounded.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text("شروع پردازش گروهی", fontWeight = FontWeight.Bold)
                         }
                     }
-                    item { Text("PhotoFrame Studio  •  v0.3.0", color = Color(0xFF7186A3), style = MaterialTheme.typography.labelSmall) }
+                    item { Text("PhotoFrame Studio  •  v0.4.0", color = Color(0xFF7186A3), style = MaterialTheme.typography.labelSmall) }
                 }
             }
             pendingDeleteProject?.let { projectId ->
@@ -296,7 +296,7 @@ private fun EdgeEditor(title: String, value: EdgeRule, onChange: (EdgeRule) -> U
                 value = extend, onValueChange = { next ->
                     extend = next.filter(Char::isDigit).take(5)
                     onChange(value.copy(extendPx = extend.toIntOrNull() ?: 0, extendFraction = null))
-                }, modifier = Modifier.weight(1f), singleLine = true, label = { Text("حاشیه بیرون (px)") }
+                }, modifier = Modifier.weight(1f), singleLine = true, label = { Text("امتداد پس‌زمینه (px)") }
             )
         }
     }
