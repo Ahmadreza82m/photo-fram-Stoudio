@@ -6,7 +6,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.photoframe.studio.data.*
 import com.photoframe.studio.processing.BitmapFrameEngine
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -23,6 +22,8 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<StudioState> = _state.asStateFlow()
     private var job: Job? = null
     private val pauseRequested = AtomicBoolean(false)
+
+    init { _state.value = _state.value.copy(adjustments = loadAdjustments()) }
 
     fun addImages(uris: List<Uri>) {
         uris.forEach { uri -> runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
@@ -52,7 +53,38 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(outputFolder = uri, notice = "پوشه خروجی انتخاب شد.")
     }
 
-    fun updateAdjustments(value: FrameAdjustments) { _state.value = _state.value.copy(adjustments = value.safe()) }
+    fun updateAdjustments(value: FrameAdjustments) {
+        val safe = value.safe()
+        _state.value = _state.value.copy(adjustments = safe)
+        saveAdjustments(safe)
+    }
+
+    fun retryFailed() {
+        val failedNames = _state.value.report?.failed?.map { it.name }?.toSet().orEmpty()
+        if (failedNames.isEmpty()) return
+        val failedItems = _state.value.images.filter { it.name in failedNames }
+        _state.value = _state.value.copy(images = failedItems, report = null, notice = "${failedItems.size} فایل ناموفق برای تلاش مجدد انتخاب شد.")
+    }
+
+    private fun saveAdjustments(a: FrameAdjustments) {
+        getApplication<Application>().getSharedPreferences("studio_settings", 0).edit()
+            .putInt("top_crop", a.top.cropPx).putInt("top_extend", a.top.extendPx)
+            .putInt("bottom_crop", a.bottom.cropPx).putInt("bottom_extend", a.bottom.extendPx)
+            .putInt("left_crop", a.left.cropPx).putInt("left_extend", a.left.extendPx)
+            .putInt("right_crop", a.right.cropPx).putInt("right_extend", a.right.extendPx)
+            .putInt("format", a.format.ordinal).putInt("quality", a.jpegQuality).putLong("fill", a.fillColor).apply()
+    }
+
+    private fun loadAdjustments(): FrameAdjustments {
+        val p = getApplication<Application>().getSharedPreferences("studio_settings", 0)
+        fun edge(side: String) = EdgeRule(p.getInt("${side}_crop", 0), p.getInt("${side}_extend", 0))
+        return FrameAdjustments(
+            top = edge("top"), bottom = edge("bottom"), left = edge("left"), right = edge("right"),
+            format = ExportFormat.values().getOrElse(p.getInt("format", 0)) { ExportFormat.PNG },
+            jpegQuality = p.getInt("quality", 96), fillColor = p.getLong("fill", 0xFFFFFFFF)
+        ).safe()
+    }
+
     fun clearImages() { _state.value = _state.value.copy(images = emptyList(), report = null, notice = "فهرست تصاویر پاک شد.") }
 
     fun togglePause() {
@@ -76,11 +108,13 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
                 while (pauseRequested.get() && isActive) delay(120)
                 if (!isActive) break
                 _state.value = _state.value.copy(currentName = image.name)
+                var target: Uri? = null
                 try {
-                    val target = repository.createUniqueOutput(destination, image.name, snapshot.adjustments.format)
+                    target = repository.createUniqueOutput(destination, image.name, snapshot.adjustments.format)
                     engine.process(image.uri, target, snapshot.adjustments)
                     succeeded++
                 } catch (e: Exception) {
+                    target?.let { repository.deleteOutput(it) }
                     failures += FailedImage(image.name, e.message ?: "خطای ناشناخته")
                 }
                 _state.value = _state.value.copy(completed = index + 1)

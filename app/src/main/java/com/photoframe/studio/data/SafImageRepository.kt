@@ -39,6 +39,8 @@ class SafImageRepository(private val context: Context) {
         return result
     }
 
+    fun deleteOutput(uri: Uri) { DocumentFile.fromSingleUri(context, uri)?.delete() }
+
     fun createUniqueOutput(folder: Uri, sourceName: String, format: ExportFormat): Uri {
         val directory = DocumentFile.fromTreeUri(context, folder) ?: error("پوشه خروجی در دسترس نیست")
         val base = sourceName.substringBeforeLast('.', sourceName).replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "image" }

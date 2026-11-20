@@ -20,7 +20,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.photoframe.studio.data.EdgeRule
 import com.photoframe.studio.data.ExportFormat
-import com.photoframe.studio.data.FrameAdjustments
 import com.photoframe.studio.viewmodel.StudioViewModel
 
 private val canvasTop = Color(0xFF172B47)
@@ -130,6 +129,7 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                                 Text("موفق: ${report.succeeded} از ${report.total}", color = Color(0xFF9FE0BD))
                                 Text("ناموفق: ${report.failed.size}", color = if (report.failed.isEmpty()) Color(0xFF9FE0BD) else MaterialTheme.colorScheme.error)
                                 report.failed.take(8).forEach { Text("• ${it.name}: ${it.reason}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                                if (report.failed.isNotEmpty()) OutlinedButton(onClick = vm::retryFailed) { Text("فقط موارد ناموفق را دوباره پردازش کن") }
                             }
                         }
                     }
@@ -139,7 +139,7 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                             Icon(Icons.Rounded.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text("شروع پردازش گروهی", fontWeight = FontWeight.Bold)
                         }
                     }
-                    item { Text("PhotoFrame Studio  •  v0.2.0", color = Color(0xFF7186A3), style = MaterialTheme.typography.labelSmall) }
+                    item { Text("PhotoFrame Studio  •  v0.3.0", color = Color(0xFF7186A3), style = MaterialTheme.typography.labelSmall) }
                 }
             }
         }
