@@ -55,10 +55,10 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         projects.forEach { project ->
             val obj = JSONObject().put("id", project.id).put("name", project.name)
                 .put("output", project.outputFolder?.toString()).put("reference", project.referenceUri?.toString())
-                .put("topCrop", project.adjustments.top.cropPx).put("topExtend", project.adjustments.top.extendPx)
-                .put("bottomCrop", project.adjustments.bottom.cropPx).put("bottomExtend", project.adjustments.bottom.extendPx)
-                .put("leftCrop", project.adjustments.left.cropPx).put("leftExtend", project.adjustments.left.extendPx)
-                .put("rightCrop", project.adjustments.right.cropPx).put("rightExtend", project.adjustments.right.extendPx)
+                .put("topCrop", project.adjustments.top.cropPx).put("topExtend", project.adjustments.top.extendPx).put("topCf", project.adjustments.top.cropFraction ?: JSONObject.NULL).put("topEf", project.adjustments.top.extendFraction ?: JSONObject.NULL)
+                .put("bottomCrop", project.adjustments.bottom.cropPx).put("bottomExtend", project.adjustments.bottom.extendPx).put("bottomCf", project.adjustments.bottom.cropFraction ?: JSONObject.NULL).put("bottomEf", project.adjustments.bottom.extendFraction ?: JSONObject.NULL)
+                .put("leftCrop", project.adjustments.left.cropPx).put("leftExtend", project.adjustments.left.extendPx).put("leftCf", project.adjustments.left.cropFraction ?: JSONObject.NULL).put("leftEf", project.adjustments.left.extendFraction ?: JSONObject.NULL)
+                .put("rightCrop", project.adjustments.right.cropPx).put("rightExtend", project.adjustments.right.extendPx).put("rightCf", project.adjustments.right.cropFraction ?: JSONObject.NULL).put("rightEf", project.adjustments.right.extendFraction ?: JSONObject.NULL)
                 .put("format", project.adjustments.format.ordinal).put("quality", project.adjustments.jpegQuality)
             val images = JSONArray()
             project.images.forEach { images.put(JSONObject().put("uri", it.uri.toString()).put("name", it.name).put("bytes", it.bytes)) }
