@@ -8,6 +8,9 @@ import com.photoframe.studio.data.*
 import com.photoframe.studio.processing.BitmapFrameEngine
 import com.photoframe.studio.processing.ReferenceFrameDetector
 import android.graphics.BitmapFactory
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,7 +28,66 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
     private var job: Job? = null
     private val pauseRequested = AtomicBoolean(false)
 
-    init { _state.value = _state.value.copy(adjustments = loadAdjustments()) }
+    init { _state.value = _state.value.copy(adjustments = loadAdjustments(), savedProjects = loadProjects()) }
+
+    fun setProjectName(value: String) { _state.value = _state.value.copy(projectName = value) }
+
+    fun saveCurrentProject() {
+        val current = _state.value
+        if (current.images.isEmpty()) { _state.value = current.copy(notice = "برای ذخیره پروژه ابتدا تصاویر را انتخاب کن."); return }
+        val project = SavedProject(UUID.randomUUID().toString(), current.projectName.trim().ifBlank { "پروژه بدون نام" }, current.images, current.outputFolder, current.adjustments)
+        val updated = current.savedProjects + project
+        _state.value = current.copy(savedProjects = updated, notice = "پروژه «${project.name}» ذخیره شد.")
+        persistProjects(updated)
+    }
+
+    fun openSavedProject(id: String) {
+        val project = _state.value.savedProjects.firstOrNull { it.id == id } ?: return
+        project.images.forEach { image -> runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(image.uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
+        project.outputFolder?.let { uri -> runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } }
+        _state.value = _state.value.copy(projectName = project.name, images = project.images, outputFolder = project.outputFolder, adjustments = project.adjustments, report = null, notice = "پروژه «${project.name}» باز شد.")
+        saveAdjustments(project.adjustments)
+    }
+
+    private fun persistProjects(projects: List<SavedProject>) {
+        val array = JSONArray()
+        projects.forEach { project ->
+            val obj = JSONObject().put("id", project.id).put("name", project.name)
+                .put("output", project.outputFolder?.toString())
+                .put("topCrop", project.adjustments.top.cropPx).put("topExtend", project.adjustments.top.extendPx)
+                .put("bottomCrop", project.adjustments.bottom.cropPx).put("bottomExtend", project.adjustments.bottom.extendPx)
+                .put("leftCrop", project.adjustments.left.cropPx).put("leftExtend", project.adjustments.left.extendPx)
+                .put("rightCrop", project.adjustments.right.cropPx).put("rightExtend", project.adjustments.right.extendPx)
+                .put("format", project.adjustments.format.ordinal).put("quality", project.adjustments.jpegQuality)
+            val images = JSONArray()
+            project.images.forEach { images.put(JSONObject().put("uri", it.uri.toString()).put("name", it.name).put("bytes", it.bytes)) }
+            obj.put("images", images)
+            array.put(obj)
+        }
+        getApplication<Application>().getSharedPreferences("studio_projects", 0).edit().putString("projects", array.toString()).apply()
+    }
+
+    private fun loadProjects(): List<SavedProject> = runCatching {
+        val raw = getApplication<Application>().getSharedPreferences("studio_projects", 0).getString("projects", "[]") ?: "[]"
+        val array = JSONArray(raw)
+        (0 until array.length()).mapNotNull { index ->
+            val obj = array.getJSONObject(index)
+            val imagesJson = obj.optJSONArray("images") ?: JSONArray()
+            val images = (0 until imagesJson.length()).mapNotNull { i -> runCatching {
+                val item = imagesJson.getJSONObject(i)
+                SelectedImage(Uri.parse(item.getString("uri")), item.optString("name", "image"), item.optLong("bytes", 0L))
+            }.getOrNull() }
+            val a = FrameAdjustments(
+                top = EdgeRule(obj.optInt("topCrop"), obj.optInt("topExtend")),
+                bottom = EdgeRule(obj.optInt("bottomCrop"), obj.optInt("bottomExtend")),
+                left = EdgeRule(obj.optInt("leftCrop"), obj.optInt("leftExtend")),
+                right = EdgeRule(obj.optInt("rightCrop"), obj.optInt("rightExtend")),
+                format = ExportFormat.values().getOrElse(obj.optInt("format")) { ExportFormat.PNG },
+                jpegQuality = obj.optInt("quality", 96)
+            )
+            SavedProject(obj.getString("id"), obj.optString("name", "پروژه"), images, obj.optString("output").takeIf { it.isNotBlank() && it != "null" }?.let(Uri::parse), a.safe())
+        }
+    }.getOrDefault(emptyList())
 
     fun addImages(uris: List<Uri>) {
         uris.forEach { uri -> runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } }

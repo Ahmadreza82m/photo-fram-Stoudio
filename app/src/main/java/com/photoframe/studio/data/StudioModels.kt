@@ -34,9 +34,19 @@ data class FailedImage(val name: String, val reason: String)
 
 data class BatchReport(val total: Int, val succeeded: Int, val failed: List<FailedImage>)
 
+data class SavedProject(
+    val id: String,
+    val name: String,
+    val images: List<SelectedImage>,
+    val outputFolder: Uri?,
+    val adjustments: FrameAdjustments
+)
+
 data class DetectedFrame(val left: Int, val top: Int, val right: Int, val bottom: Int, val confidence: Double, val imageWidth: Int, val imageHeight: Int)
 
 data class StudioState(
+    val projectName: String = "پروژه جدید",
+    val savedProjects: List<SavedProject> = emptyList(),
     val referenceUri: Uri? = null,
     val referenceName: String? = null,
     val detectedFrame: DetectedFrame? = null,

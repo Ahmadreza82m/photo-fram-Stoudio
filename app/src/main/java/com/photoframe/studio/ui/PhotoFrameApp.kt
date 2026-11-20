@@ -66,6 +66,27 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                     }
                     item {
                         GlassCard {
+                            SectionHeading("پروژه و سوابق", Icons.Rounded.FolderCopy)
+                            OutlinedTextField(value = state.projectName, onValueChange = vm::setProjectName, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("نام پروژه") })
+                            OutlinedButton(onClick = vm::saveCurrentProject, enabled = state.images.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Rounded.Save, null); Spacer(Modifier.width(7.dp)); Text("ذخیره پروژه فعلی")
+                            }
+                            if (state.savedProjects.isNotEmpty()) {
+                                Text("پروژه‌های ذخیره‌شده", fontWeight = FontWeight.SemiBold)
+                                state.savedProjects.takeLast(5).reversed().forEach { project ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(project.name, fontWeight = FontWeight.Medium)
+                                            Text(project.images.size.toString() + " تصویر", color = Color(0xFF9EB4D0), style = MaterialTheme.typography.labelSmall)
+                                        }
+                                        TextButton(onClick = { vm.openSavedProject(project.id) }) { Text("باز کردن") }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        GlassCard {
                             SectionHeading("ورودی تصاویر", Icons.Rounded.PhotoLibrary)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(onClick = { imagesPicker.launch(arrayOf("image/*")) }, modifier = Modifier.weight(1f)) {
