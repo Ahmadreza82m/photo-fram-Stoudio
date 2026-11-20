@@ -29,6 +29,7 @@ private val glass = Color(0xD91A2B42)
 @Composable
 fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val referencePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { if (it != null) vm.setReference(it) }
     val imagesPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.addImages(it) }
     val sourceFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { if (it != null) vm.scanFolder(it) }
     val outputPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { if (it != null) vm.setOutputFolder(it) }
@@ -89,6 +90,24 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                             OutlinedButton(onClick = { outputPicker.launch(null) }, modifier = Modifier.fillMaxWidth()) {
                                 Icon(Icons.Rounded.Folder, null); Spacer(Modifier.width(7.dp)); Text("انتخاب پوشه خروجی")
                             }
+                        }
+                    }
+                    item {
+                        GlassCard {
+                            SectionHeading("الگوی مرجع و تشخیص کادر", Icons.Rounded.CropFree)
+                            Text(state.referenceName ?: "تصویر نمونه‌ای برای تعیین محدوده کادر انتخاب نشده است.", color = Color(0xFFB6C7DB), style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(onClick = { referencePicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Rounded.ImageSearch, null); Spacer(Modifier.width(7.dp)); Text("انتخاب تصویر مرجع")
+                            }
+                            Button(onClick = vm::detectReferenceFrame, enabled = state.referenceUri != null, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Rounded.AutoFixHigh, null); Spacer(Modifier.width(7.dp)); Text("تشخیص خودکار کادر با OpenCV")
+                            }
+                            state.detectedFrame?.let { frame ->
+                                Text("چپ: " + frame.left + " • بالا: " + frame.top + " • راست: " + frame.right + " • پایین: " + frame.bottom, style = MaterialTheme.typography.bodySmall)
+                                Text("کادر پیشنهادی پیدا شد؛ تشخیص ممکن است اشتباه باشد.", color = Color(0xFF9EB4D0), style = MaterialTheme.typography.labelSmall)
+                                OutlinedButton(onClick = vm::applyDetectedFrame, modifier = Modifier.fillMaxWidth()) { Text("اعمال مختصات پیشنهادی") }
+                            }
+                            state.detectionMessage?.let { Text(it, color = Color(0xFF9DD2FF), style = MaterialTheme.typography.bodySmall) }
                         }
                     }
                     item {
