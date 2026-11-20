@@ -6,6 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.photoframe.studio.data.*
 import com.photoframe.studio.processing.BitmapFrameEngine
+import com.photoframe.studio.processing.ReferenceFrameDetector
+import android.graphics.BitmapFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -43,6 +45,61 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
                 _state.value = _state.value.copy(images = merged, notice = "${found.getOrThrow().size} تصویر از پوشه و زیرپوشه‌ها پیدا شد.")
             } else _state.value = _state.value.copy(notice = "خواندن پوشه ناموفق بود: ${found.exceptionOrNull()?.message}")
         }
+    }
+
+    fun setReference(uri: Uri) {
+        runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        val name = runCatching { repository.imageInfo(uri).name }.getOrDefault("reference")
+        _state.value = _state.value.copy(referenceUri = uri, referenceName = name, detectedFrame = null, detectionMessage = "تصویر مرجع انتخاب شد؛ حالا تشخیص کادر را اجرا کن.")
+    }
+
+    fun detectReferenceFrame() {
+        val uri = _state.value.referenceUri ?: run {
+            _state.value = _state.value.copy(detectionMessage = "ابتدا تصویر مرجع را انتخاب کن.")
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val resolver = getApplication<Application>().contentResolver
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+                val originalW = bounds.outWidth
+                val originalH = bounds.outHeight
+                if (originalW <= 0 || originalH <= 0) error("تصویر مرجع معتبر نیست")
+                var sample = 1
+                while (originalW / (sample * 2) > 1800 || originalH / (sample * 2) > 1800) sample *= 2
+                val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+                val bitmap = resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) } ?: error("خواندن تصویر مرجع ناموفق بود")
+                try {
+                    val candidate = ReferenceFrameDetector.detect(bitmap) ?: error("کادر واضحی پیدا نشد؛ مختصات را دستی تنظیم کن.")
+                    val scaleX = originalW.toFloat() / bitmap.width
+                    val scaleY = originalH.toFloat() / bitmap.height
+                    val mapped = candidate.copy(
+                        left = (candidate.left * scaleX).toInt(),
+                        top = (candidate.top * scaleY).toInt(),
+                        right = (candidate.right * scaleX).toInt(),
+                        bottom = (candidate.bottom * scaleY).toInt(),
+                        imageWidth = originalW,
+                        imageHeight = originalH
+                    )
+                    _state.value = _state.value.copy(detectedFrame = mapped, detectionMessage = "کادر پیشنهادی پیدا شد. قبل از اعمال، نتیجه را بررسی کن.")
+                } finally { bitmap.recycle() }
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(detectedFrame = null, detectionMessage = e.message ?: "تشخیص کادر ناموفق بود.")
+            }
+        }
+    }
+
+    fun applyDetectedFrame() {
+        val frame = _state.value.detectedFrame ?: return
+        val old = _state.value.adjustments
+        updateAdjustments(old.copy(
+            left = old.left.copy(cropPx = frame.left),
+            top = old.top.copy(cropPx = frame.top),
+            right = old.right.copy(cropPx = (frame.imageWidth - frame.right).coerceAtLeast(0)),
+            bottom = old.bottom.copy(cropPx = (frame.imageHeight - frame.bottom).coerceAtLeast(0))
+        ))
+        _state.value = _state.value.copy(detectionMessage = "مختصات پیشنهادی اعمال شد؛ مقادیر چهارطرفه را بازبینی کن.")
     }
 
     fun setOutputFolder(uri: Uri) {

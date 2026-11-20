@@ -32,7 +32,13 @@ data class FailedImage(val name: String, val reason: String)
 
 data class BatchReport(val total: Int, val succeeded: Int, val failed: List<FailedImage>)
 
+data class DetectedFrame(val left: Int, val top: Int, val right: Int, val bottom: Int, val confidence: Double, val imageWidth: Int, val imageHeight: Int)
+
 data class StudioState(
+    val referenceUri: Uri? = null,
+    val referenceName: String? = null,
+    val detectedFrame: DetectedFrame? = null,
+    val detectionMessage: String? = null,
     val images: List<SelectedImage> = emptyList(),
     val outputFolder: Uri? = null,
     val adjustments: FrameAdjustments = FrameAdjustments(),
