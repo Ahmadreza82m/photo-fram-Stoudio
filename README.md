@@ -29,3 +29,7 @@ Use JDK 17 and Android SDK 35:
 ./gradlew assembleDebug
 ```
 GitHub Actions will be added after feature completion and build/test verification.
+
+
+## Manual reference-frame editing
+The reference image now includes an interactive frame overlay. Drag any of the eight corner/edge handles to refine the detected or default frame, then apply the coordinates to the four-sided crop settings. The editor displays a downsampled preview for responsive interaction; stored coordinates are normalized back to the reference image dimensions before applying.
