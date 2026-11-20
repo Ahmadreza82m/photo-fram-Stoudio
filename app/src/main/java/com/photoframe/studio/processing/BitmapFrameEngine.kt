@@ -22,11 +22,10 @@ class BitmapFrameEngine(private val resolver: ContentResolver) {
     fun process(sourceUri: Uri, outputUri: Uri, raw: FrameAdjustments): Processed {
         val settings = raw.safe()
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(sourceUri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-            ?: throw IOException("فایل ورودی قابل خواندن نیست")
+        decode(sourceUri, bounds)
         val originalW = bounds.outWidth
         val originalH = bounds.outHeight
-        if (originalW < 1 || originalH < 1) throw IOException("تصویر معتبر نیست")
+        if (originalW < 1 || originalH < 1) throw IOException("فرمت تصویر قابل رمزگشایی نیست یا فایل خراب است")
 
         val maxPixels = 28_000_000L
         val sample = chooseSample(originalW, originalH, maxPixels)
@@ -34,8 +33,8 @@ class BitmapFrameEngine(private val resolver: ContentResolver) {
             inSampleSize = sample
             inPreferredConfig = Bitmap.Config.ARGB_8888
         }
-        val input = resolver.openInputStream(sourceUri)?.use { BitmapFactory.decodeStream(it, null, options) }
-            ?: throw IOException("رمزگشایی تصویر ناموفق بود")
+        val input = decode(sourceUri, options)
+            ?: throw IOException("رمزگشایی تصویر ناموفق بود؛ فایل خالی یا خراب است")
 
         try {
             val sx = input.width.toFloat() / originalW
@@ -86,16 +85,15 @@ class BitmapFrameEngine(private val resolver: ContentResolver) {
     fun previewPair(sourceUri: Uri, raw: FrameAdjustments): Pair<Bitmap, Bitmap> {
         val settings = raw.safe()
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(sourceUri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-            ?: throw IOException("خواندن تصویر پیش‌نمایش ناموفق بود")
+        decode(sourceUri, bounds)
         val originalW = bounds.outWidth
         val originalH = bounds.outHeight
-        if (originalW <= 0 || originalH <= 0) throw IOException("تصویر پیش‌نمایش معتبر نیست")
+        if (originalW <= 0 || originalH <= 0) throw IOException("فرمت تصویر پیش‌نمایش قابل رمزگشایی نیست")
         var sample = 1
         while (originalW / (sample * 2) > 1200 || originalH / (sample * 2) > 1200) sample *= 2
         val opts = BitmapFactory.Options().apply { inSampleSize = sample }
-        val before = resolver.openInputStream(sourceUri)?.use { BitmapFactory.decodeStream(it, null, opts) }
-            ?: throw IOException("رمزگشایی پیش‌نمایش ناموفق بود")
+        val before = decode(sourceUri, opts)
+            ?: throw IOException("رمزگشایی پیش‌نمایش ناموفق بود؛ فایل خالی یا خراب است")
         val sx = before.width.toFloat() / originalW
         val sy = before.height.toFloat() / originalH
         val left = (((settings.left.cropFraction?.times(originalW.toFloat()) ?: settings.left.cropPx.toFloat())) * sx).toInt()
@@ -124,6 +122,30 @@ class BitmapFrameEngine(private val resolver: ContentResolver) {
             drawBitmap(before, src, Rect(padL, padT, padL + src.width(), padT + src.height()), Paint(Paint.FILTER_BITMAP_FLAG))
         }
         return before to after
+    }
+
+    private fun decode(uri: Uri, options: BitmapFactory.Options): Bitmap? {
+        var streamError: Exception? = null
+        try {
+            val decoded = resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+            if (decoded != null || (options.inJustDecodeBounds && options.outWidth > 0 && options.outHeight > 0)) return decoded
+        } catch (e: Exception) {
+            streamError = e
+        }
+
+        try {
+            val decoded = resolver.openFileDescriptor(uri, "r")?.use {
+                BitmapFactory.decodeFileDescriptor(it.fileDescriptor, null, options)
+            }
+            if (decoded != null || (options.inJustDecodeBounds && options.outWidth > 0 && options.outHeight > 0)) return decoded
+        } catch (e: Exception) {
+            if (streamError == null) streamError = e
+        }
+
+        throw IOException(
+            "دسترسی به فایل ورودی ممکن نشد. ممکن است مجوز فایل از دست رفته یا فایل از دسترس خارج شده باشد.",
+            streamError
+        )
     }
 
     private fun chooseSample(width: Int, height: Int, maxPixels: Long): Int {
