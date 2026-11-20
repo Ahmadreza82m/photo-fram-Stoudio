@@ -36,6 +36,7 @@ private val glass = Color(0xD91A2B42)
 @Composable
 fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
+    var pendingDeleteProject by remember { mutableStateOf<String?>(null) }
     val referencePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { if (it != null) vm.setReference(it) }
     val imagesPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.addImages(it) }
     val sourceFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { if (it != null) vm.scanFolder(it) }
@@ -80,7 +81,7 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                                             Text(project.images.size.toString() + " تصویر", color = Color(0xFF9EB4D0), style = MaterialTheme.typography.labelSmall)
                                         }
                                         TextButton(onClick = { vm.openSavedProject(project.id) }) { Text("باز کردن") }
-                                        TextButton(onClick = { vm.deleteSavedProject(project.id) }) { Text("حذف") }
+                                        TextButton(onClick = { pendingDeleteProject = project.id }) { Text("حذف") }
                                     }
                                 }
                             }
@@ -192,6 +193,23 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                     }
                     item { Text("PhotoFrame Studio  •  v0.3.0", color = Color(0xFF7186A3), style = MaterialTheme.typography.labelSmall) }
                 }
+            }
+            pendingDeleteProject?.let { projectId ->
+                val projectName = state.savedProjects.firstOrNull { it.id == projectId }?.name.orEmpty()
+                AlertDialog(
+                    onDismissRequest = { pendingDeleteProject = null },
+                    title = { Text("حذف پروژه؟") },
+                    text = { Text("پروژه «$projectName» از فهرست پروژه‌های ذخیره‌شده حذف می‌شود.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            vm.deleteSavedProject(projectId)
+                            pendingDeleteProject = null
+                        }) { Text("حذف") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingDeleteProject = null }) { Text("انصراف") }
+                    }
+                )
             }
         }
     }
