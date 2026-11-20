@@ -147,8 +147,11 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                                 Icon(Icons.Rounded.AutoFixHigh, null); Spacer(Modifier.width(7.dp)); Text("تشخیص خودکار کادر با OpenCV")
                             }
                             state.detectedFrame?.let { frame ->
-                                Text("چپ: " + frame.left + " • بالا: " + frame.top + " • راست: " + frame.right + " • پایین: " + frame.bottom, style = MaterialTheme.typography.bodySmall)
-                                Text("کادر پیشنهادی پیدا شد؛ تشخیص ممکن است اشتباه باشد.", color = Color(0xFF9EB4D0), style = MaterialTheme.typography.labelSmall)
+                                Text("ابعاد تصویر مرجع: ${frame.imageWidth} × ${frame.imageHeight} پیکسل", style = MaterialTheme.typography.bodySmall, color = Color(0xFFB6C7DB))
+                                Text("ابعاد ناحیه داخل کادر: ${(frame.right - frame.left).coerceAtLeast(0)} × ${(frame.bottom - frame.top).coerceAtLeast(0)} پیکسل", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF91D0FF))
+                                Text("فضای خارج کادر (حاشیه‌ها): بالا ${frame.top}px  •  پایین ${(frame.imageHeight - frame.bottom).coerceAtLeast(0)}px", style = MaterialTheme.typography.bodySmall)
+                                Text("چپ ${frame.left}px  •  راست ${(frame.imageWidth - frame.right).coerceAtLeast(0)}px", style = MaterialTheme.typography.bodySmall)
+                                Text("این چهار مقدار، فاصله هر ضلع کادر تا لبه تصویر اصلی هستند؛ با اعمال کادر، همین ناحیه‌های بیرونی برش می‌خورند.", color = Color(0xFF9EB4D0), style = MaterialTheme.typography.labelSmall)
                                 OutlinedButton(onClick = vm::applyDetectedFrame, modifier = Modifier.fillMaxWidth()) { Text("اعمال مختصات پیشنهادی") }
                             }
                             state.detectionMessage?.let { Text(it, color = Color(0xFF9DD2FF), style = MaterialTheme.typography.bodySmall) }
@@ -286,13 +289,13 @@ private fun EdgeEditor(title: String, value: EdgeRule, onChange: (EdgeRule) -> U
             OutlinedTextField(
                 value = crop, onValueChange = { next ->
                     crop = next.filter(Char::isDigit).take(5)
-                    onChange(value.copy(cropPx = crop.toIntOrNull() ?: 0))
+                    onChange(value.copy(cropPx = crop.toIntOrNull() ?: 0, cropFraction = null))
                 }, modifier = Modifier.weight(1f), singleLine = true, label = { Text("برش داخل (px)") }
             )
             OutlinedTextField(
                 value = extend, onValueChange = { next ->
                     extend = next.filter(Char::isDigit).take(5)
-                    onChange(value.copy(extendPx = extend.toIntOrNull() ?: 0))
+                    onChange(value.copy(extendPx = extend.toIntOrNull() ?: 0, extendFraction = null))
                 }, modifier = Modifier.weight(1f), singleLine = true, label = { Text("حاشیه بیرون (px)") }
             )
         }
