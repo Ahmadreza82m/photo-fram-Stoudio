@@ -2,6 +2,10 @@ package com.photoframe.studio.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +14,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.photoframe.studio.processing.BitmapFrameEngine
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -92,6 +99,9 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                             }
                         }
                     }
+                    if (state.images.isNotEmpty()) item {
+                        PreviewCard(state.images.first().uri, state.adjustments)
+                    }
                     item {
                         GlassCard {
                             SectionHeading("الگوی مرجع و تشخیص کادر", Icons.Rounded.CropFree)
@@ -159,6 +169,36 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                         }
                     }
                     item { Text("PhotoFrame Studio  •  v0.3.0", color = Color(0xFF7186A3), style = MaterialTheme.typography.labelSmall) }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun PreviewCard(uri: android.net.Uri, settings: com.photoframe.studio.data.FrameAdjustments) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val pair by produceState<Pair<Bitmap, Bitmap>?>(initialValue = null, uri, settings) {
+        value?.first?.recycle()
+        value?.second?.recycle()
+        value = withContext(Dispatchers.IO) {
+            runCatching { BitmapFrameEngine(context.contentResolver).previewPair(uri, settings) }.getOrNull()
+        }
+    }
+    GlassCard {
+        SectionHeading("پیش‌نمایش قبل و بعد", Icons.Rounded.Compare)
+        if (pair == null) {
+            Text("برای این تصویر با تنظیمات فعلی پیش‌نمایش در دسترس نیست.", color = Color(0xFF9EB4D0), style = MaterialTheme.typography.bodySmall)
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("قبل", color = Color(0xFFB6C7DB), style = MaterialTheme.typography.labelMedium)
+                    Image(pair!!.first.asImageBitmap(), null, modifier = Modifier.fillMaxWidth().height(140.dp), contentScale = ContentScale.Fit)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text("بعد", color = Color(0xFF91D0FF), style = MaterialTheme.typography.labelMedium)
+                    Image(pair!!.second.asImageBitmap(), null, modifier = Modifier.fillMaxWidth().height(140.dp), contentScale = ContentScale.Fit)
                 }
             }
         }

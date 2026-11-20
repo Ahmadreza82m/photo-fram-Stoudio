@@ -82,6 +82,50 @@ class BitmapFrameEngine(private val resolver: ContentResolver) {
         }
     }
 
+
+    fun previewPair(sourceUri: Uri, raw: FrameAdjustments): Pair<Bitmap, Bitmap> {
+        val settings = raw.safe()
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(sourceUri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+            ?: throw IOException("خواندن تصویر پیش‌نمایش ناموفق بود")
+        val originalW = bounds.outWidth
+        val originalH = bounds.outHeight
+        if (originalW <= 0 || originalH <= 0) throw IOException("تصویر پیش‌نمایش معتبر نیست")
+        var sample = 1
+        while (originalW / (sample * 2) > 1200 || originalH / (sample * 2) > 1200) sample *= 2
+        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+        val before = resolver.openInputStream(sourceUri)?.use { BitmapFactory.decodeStream(it, null, opts) }
+            ?: throw IOException("رمزگشایی پیش‌نمایش ناموفق بود")
+        val sx = before.width.toFloat() / originalW
+        val sy = before.height.toFloat() / originalH
+        val left = ((settings.left.cropFraction?.times(originalW) ?: settings.left.cropPx) * sx).toInt()
+        val right = ((settings.right.cropFraction?.times(originalW) ?: settings.right.cropPx) * sx).toInt()
+        val top = ((settings.top.cropFraction?.times(originalH) ?: settings.top.cropPx) * sy).toInt()
+        val bottom = ((settings.bottom.cropFraction?.times(originalH) ?: settings.bottom.cropPx) * sy).toInt()
+        val padL = ((settings.left.extendFraction?.times(originalW) ?: settings.left.extendPx) * sx).toInt()
+        val padR = ((settings.right.extendFraction?.times(originalW) ?: settings.right.extendPx) * sx).toInt()
+        val padT = ((settings.top.extendFraction?.times(originalH) ?: settings.top.extendPx) * sy).toInt()
+        val padB = ((settings.bottom.extendFraction?.times(originalH) ?: settings.bottom.extendPx) * sy).toInt()
+        val src = Rect(left, top, before.width - right, before.height - bottom)
+        if (src.width() <= 0 || src.height() <= 0) {
+            before.recycle()
+            throw IOException("مقدار برش از اندازه تصویر پیش‌نمایش بیشتر است")
+        }
+        val outW = src.width() + padL + padR
+        val outH = src.height() + padT + padB
+        if (outW <= 0 || outH <= 0 || outW.toLong() * outH > 8_000_000L) {
+            before.recycle()
+            throw IOException("اندازه پیش‌نمایش بیش از حد مجاز است")
+        }
+        val after = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
+        val color = settings.fillColor.toInt()
+        Canvas(after).apply {
+            drawColor(color)
+            drawBitmap(before, src, Rect(padL, padT, padL + src.width(), padT + src.height()), Paint(Paint.FILTER_BITMAP_FLAG))
+        }
+        return before to after
+    }
+
     private fun chooseSample(width: Int, height: Int, maxPixels: Long): Int {
         var sample = 1
         while ((width.toLong() / (sample * 2)) * (height.toLong() / (sample * 2)) > maxPixels) {
