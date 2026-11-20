@@ -159,6 +159,15 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun setManualReferenceFrame(frame: DetectedFrame) {
+        val safeLeft = frame.left.coerceIn(0, frame.imageWidth - 2)
+        val safeTop = frame.top.coerceIn(0, frame.imageHeight - 2)
+        val safeRight = frame.right.coerceIn(safeLeft + 2, frame.imageWidth)
+        val safeBottom = frame.bottom.coerceIn(safeTop + 2, frame.imageHeight)
+        val safeFrame = frame.copy(left = safeLeft, top = safeTop, right = safeRight, bottom = safeBottom)
+        _state.value = _state.value.copy(detectedFrame = safeFrame, detectionMessage = "کادر دستی به‌روزرسانی شد.")
+    }
+
     fun applyDetectedFrame() {
         val frame = _state.value.detectedFrame ?: return
         val old = _state.value.adjustments
