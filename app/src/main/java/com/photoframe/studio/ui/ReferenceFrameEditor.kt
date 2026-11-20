@@ -47,11 +47,12 @@ fun ReferenceFrameEditor(
         }
     }
     val currentCallback by rememberUpdatedState(onFrameChange)
+    val latestFrame by rememberUpdatedState(frame)
     val image = bitmap
     if (image != null) {
         var activeHandle by remember(image) { mutableIntStateOf(-1) }
         Canvas(
-            Modifier.fillMaxWidth().height(250.dp).pointerInput(image, frame) {
+            Modifier.fillMaxWidth().height(250.dp).pointerInput(image) {
                 fun fittedRect(): androidx.compose.ui.geometry.Rect {
                     val scale = min(size.width / image.width.toFloat(), size.height / image.height.toFloat())
                     val w = image.width * scale
@@ -63,7 +64,11 @@ fun ReferenceFrameEditor(
                 detectDragGestures(
                     onDragStart = { point ->
                         val dst = fittedRect()
-                        val f = frame ?: DetectedFrame(
+                        val f = latestFrame?.let { saved ->
+                            val sx = image.width.toFloat() / saved.imageWidth
+                            val sy = image.height.toFloat() / saved.imageHeight
+                            saved.copy(left = (saved.left * sx).toInt(), right = (saved.right * sx).toInt(), top = (saved.top * sy).toInt(), bottom = (saved.bottom * sy).toInt(), imageWidth = image.width, imageHeight = image.height)
+                        } ?: DetectedFrame(
                             (image.width * 0.05f).toInt(), (image.height * 0.05f).toInt(),
                             (image.width * 0.95f).toInt(), (image.height * 0.95f).toInt(),
                             0.0, image.width, image.height
@@ -84,7 +89,11 @@ fun ReferenceFrameEditor(
                     onDrag = { change, dragAmount ->
                         change.consume()
                         val dst = fittedRect()
-                        val old = frame ?: DetectedFrame(
+                        val old = latestFrame?.let { saved ->
+                            val sx = image.width.toFloat() / saved.imageWidth
+                            val sy = image.height.toFloat() / saved.imageHeight
+                            saved.copy(left = (saved.left * sx).toInt(), right = (saved.right * sx).toInt(), top = (saved.top * sy).toInt(), bottom = (saved.bottom * sy).toInt(), imageWidth = image.width, imageHeight = image.height)
+                        } ?: DetectedFrame(
                             (image.width * 0.05f).toInt(), (image.height * 0.05f).toInt(),
                             (image.width * 0.95f).toInt(), (image.height * 0.95f).toInt(),
                             0.0, image.width, image.height
@@ -121,7 +130,11 @@ fun ReferenceFrameEditor(
             val top = (size.height - h) / 2f
             val dst = androidx.compose.ui.geometry.Rect(left, top, left + w, top + h)
             drawImage(image.asImageBitmap(), dstOffset = androidx.compose.ui.unit.IntOffset(left.toInt(), top.toInt()), dstSize = IntSize(w.toInt(), h.toInt()))
-            val f = frame ?: DetectedFrame(
+            val f = latestFrame?.let { saved ->
+                val sx = image.width.toFloat() / saved.imageWidth
+                val sy = image.height.toFloat() / saved.imageHeight
+                saved.copy(left = (saved.left * sx).toInt(), right = (saved.right * sx).toInt(), top = (saved.top * sy).toInt(), bottom = (saved.bottom * sy).toInt(), imageWidth = image.width, imageHeight = image.height)
+            } ?: DetectedFrame(
                 (image.width * 0.05f).toInt(), (image.height * 0.05f).toInt(),
                 (image.width * 0.95f).toInt(), (image.height * 0.95f).toInt(),
                 0.0, image.width, image.height
@@ -130,8 +143,10 @@ fun ReferenceFrameEditor(
                 left + f.left * scale, top + f.top * scale,
                 left + f.right * scale, top + f.bottom * scale
             )
-            drawRect(Color(0x55000000), topLeft = Offset(left, top), size = Size(w, h))
-            drawRect(Color.Transparent, topLeft = rect.topLeft, size = rect.size, blendMode = androidx.compose.ui.graphics.BlendMode.Clear)
+            drawRect(Color(0x55000000), topLeft = Offset(left, top), size = Size(w, (rect.top - top).coerceAtLeast(0f)))
+            drawRect(Color(0x55000000), topLeft = Offset(left, rect.bottom), size = Size(w, (top + h - rect.bottom).coerceAtLeast(0f)))
+            drawRect(Color(0x55000000), topLeft = Offset(left, rect.top), size = Size((rect.left - left).coerceAtLeast(0f), rect.height))
+            drawRect(Color(0x55000000), topLeft = Offset(rect.right, rect.top), size = Size((left + w - rect.right).coerceAtLeast(0f), rect.height))
             drawRect(Color(0xFF7DD3FC), topLeft = rect.topLeft, size = rect.size, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.dp.toPx()))
             val handles = listOf(
                 rect.topLeft, Offset(rect.center.x, rect.top), rect.topRight,
