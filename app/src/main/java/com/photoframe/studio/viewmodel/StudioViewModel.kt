@@ -90,6 +90,12 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         }
     }.getOrDefault(emptyList())
 
+    fun deleteSavedProject(id: String) {
+        val updated = _state.value.savedProjects.filterNot { it.id == id }
+        _state.value = _state.value.copy(savedProjects = updated, notice = "پروژه حذف شد.")
+        persistProjects(updated)
+    }
+
     fun addImages(uris: List<Uri>) {
         uris.forEach { uri -> runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
         val merged = (_state.value.images + uris.mapNotNull { runCatching { repository.imageInfo(it) }.getOrNull() }).distinctBy { it.uri }
