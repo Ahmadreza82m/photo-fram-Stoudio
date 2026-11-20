@@ -82,7 +82,8 @@ fun ReferenceFrameEditor(
                             Offset(xs[2], ys[1]), Offset(xs[2], ys[2]), Offset(xs[1], ys[2]),
                             Offset(xs[0], ys[2]), Offset(xs[0], ys[1])
                         )
-                        activeHandle = points.indices.minByOrNull { (points[it] - point).getDistance() } ?: -1
+                        val nearest = points.indices.minByOrNull { (points[it] - point).getDistance() }
+                        activeHandle = nearest?.takeIf { (points[it] - point).getDistance() <= 48.dp.toPx() } ?: -1
                     },
                     onDragEnd = { activeHandle = -1 },
                     onDragCancel = { activeHandle = -1 },
