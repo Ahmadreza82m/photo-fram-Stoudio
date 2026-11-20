@@ -125,16 +125,16 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun saveAdjustments(a: FrameAdjustments) {
         getApplication<Application>().getSharedPreferences("studio_settings", 0).edit()
-            .putInt("top_crop", a.top.cropPx).putInt("top_extend", a.top.extendPx)
-            .putInt("bottom_crop", a.bottom.cropPx).putInt("bottom_extend", a.bottom.extendPx)
-            .putInt("left_crop", a.left.cropPx).putInt("left_extend", a.left.extendPx)
-            .putInt("right_crop", a.right.cropPx).putInt("right_extend", a.right.extendPx)
+            .putInt("top_crop", a.top.cropPx).putInt("top_extend", a.top.extendPx).putFloat("top_cf", a.top.cropFraction ?: -1f).putFloat("top_ef", a.top.extendFraction ?: -1f)
+            .putInt("bottom_crop", a.bottom.cropPx).putInt("bottom_extend", a.bottom.extendPx).putFloat("bottom_cf", a.bottom.cropFraction ?: -1f).putFloat("bottom_ef", a.bottom.extendFraction ?: -1f)
+            .putInt("left_crop", a.left.cropPx).putInt("left_extend", a.left.extendPx).putFloat("left_cf", a.left.cropFraction ?: -1f).putFloat("left_ef", a.left.extendFraction ?: -1f)
+            .putInt("right_crop", a.right.cropPx).putInt("right_extend", a.right.extendPx).putFloat("right_cf", a.right.cropFraction ?: -1f).putFloat("right_ef", a.right.extendFraction ?: -1f)
             .putInt("format", a.format.ordinal).putInt("quality", a.jpegQuality).putLong("fill", a.fillColor).apply()
     }
 
     private fun loadAdjustments(): FrameAdjustments {
         val p = getApplication<Application>().getSharedPreferences("studio_settings", 0)
-        fun edge(side: String) = EdgeRule(p.getInt("${side}_crop", 0), p.getInt("${side}_extend", 0))
+        fun edge(side: String) = EdgeRule(p.getInt("${side}_crop", 0), p.getInt("${side}_extend", 0), p.getFloat("${side}_cf", -1f).takeIf { it >= 0f }, p.getFloat("${side}_ef", -1f).takeIf { it >= 0f })
         return FrameAdjustments(
             top = edge("top"), bottom = edge("bottom"), left = edge("left"), right = edge("right"),
             format = ExportFormat.values().getOrElse(p.getInt("format", 0)) { ExportFormat.PNG },

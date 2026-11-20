@@ -1,29 +1,28 @@
 # PhotoFrame Studio
 
-**Professional Batch Image Preparation** — Android-native Kotlin + Jetpack Compose project.
+**Professional Batch Image Preparation** — Android-native Kotlin + Jetpack Compose.
 
-## Implemented
-- Android Storage Access Framework import of multiple image files.
-- Recursive scanning of selected folders and nested subfolders (JPG/JPEG, PNG, WEBP, BMP).
-- Persisted URI permissions where Android grants them.
-- Separate output folder selection.
-- Independent crop-in and extend-out values for all four edges.
-- PNG export and adjustable JPEG quality.
-- Sequential batch processing, progress, pause/resume and stop.
-- Failure report and retry-only-failed action.
-- Collision-safe output names; partial outputs are deleted after a processing error when possible.
-- Processing settings saved between app launches.
-- Source images are read-only and never overwritten.
+## Implemented on development
+- Multi-image import and recursive image-folder scan (JPG/JPEG, PNG, WEBP, BMP).
+- Android Storage Access Framework with persisted URI permissions where supported.
+- Separate output folder and collision-safe output names.
+- Independent crop-in and extend-out controls for top, bottom, left and right.
+- PNG/JPEG output with adjustable JPEG quality.
+- Sequential batch processing, progress, pause/resume, stop, error report and retry failed items.
+- Processing settings saved between launches.
+- OpenCV-based reference-frame candidate detection and transfer of crop coordinates.
+- Reference-derived crop values can be stored as normalized proportions and scaled to images with different dimensions; manually editing a side switches that side back to fixed source pixels.
+- Original source images are never overwritten.
 
-## Image engine notes
-Values are interpreted in source-image pixels and scaled to the decoded bitmap. Very large images are downsampled to cap memory use. This is not yet a full-resolution tiled print pipeline. PNG encoding is lossless; JPEG is lossy. EXIF orientation and ICC profile handling remain to be added.
-
-## Remaining work
-Reference-frame import/detection, editable frame coordinates, before/after preview, three test-size variants, TIFF support, color management, project/template persistence, device stress tests and build validation.
+## Current limitations
+- OpenCV detection is heuristic, not guaranteed recognition; candidates must be reviewed.
+- Before/after visual preview, draggable coordinate overlay, three comparison sizes and saved project/template library remain.
+- TIFF decoding, EXIF orientation normalization, ICC profile preservation and tiled full-resolution processing remain.
+- Very large images may be downsampled to limit memory, so this is not yet a full-resolution print pipeline.
 
 ## Build
-JDK 17 and Android SDK 35:
+Use JDK 17 and Android SDK 35:
 ```bash
 ./gradlew assembleDebug
 ```
-GitHub Actions is deferred until feature completion and verified build/test results.
+GitHub Actions will be added after feature completion and build/test verification.
