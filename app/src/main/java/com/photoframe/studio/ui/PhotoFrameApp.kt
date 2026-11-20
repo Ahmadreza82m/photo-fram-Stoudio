@@ -140,6 +140,9 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                                     onFrameChange = vm::setManualReferenceFrame
                                 )
                             }
+                            if (state.referenceUri != null) {
+                                Text("برای تنظیم دقیق، نقاط آبی گوشه‌ها و وسط اضلاع کادر را روی تصویر بکش؛ سپس «اعمال مختصات» را بزن.", color = Color(0xFF9EB4D0), style = MaterialTheme.typography.bodySmall)
+                            }
                             Button(onClick = vm::detectReferenceFrame, enabled = state.referenceUri != null, modifier = Modifier.fillMaxWidth()) {
                                 Icon(Icons.Rounded.AutoFixHigh, null); Spacer(Modifier.width(7.dp)); Text("تشخیص خودکار کادر با OpenCV")
                             }
