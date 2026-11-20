@@ -45,6 +45,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         val project = _state.value.savedProjects.firstOrNull { it.id == id } ?: return
         project.images.forEach { image -> runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(image.uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
         project.outputFolder?.let { uri -> runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } }
+        project.referenceUri?.let { uri -> runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
         _state.value = _state.value.copy(projectName = project.name, images = project.images, outputFolder = project.outputFolder, adjustments = project.adjustments, referenceUri = project.referenceUri, referenceName = project.referenceUri?.let { runCatching { repository.imageInfo(it).name }.getOrNull() }, report = null, notice = "پروژه «${project.name}» باز شد.")
         saveAdjustments(project.adjustments)
     }
