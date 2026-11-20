@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.photoframe.studio.data.EdgeRule
 import com.photoframe.studio.data.ExportFormat
 import com.photoframe.studio.viewmodel.StudioViewModel
+import com.photoframe.studio.data.DetectedFrame
 
 private val canvasTop = Color(0xFF172B47)
 private val canvasBottom = Color(0xFF080F1C)
@@ -131,6 +132,13 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                             Text(state.referenceName ?: "تصویر نمونه‌ای برای تعیین محدوده کادر انتخاب نشده است.", color = Color(0xFFB6C7DB), style = MaterialTheme.typography.bodySmall)
                             OutlinedButton(onClick = { referencePicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
                                 Icon(Icons.Rounded.ImageSearch, null); Spacer(Modifier.width(7.dp)); Text("انتخاب تصویر مرجع")
+                            }
+                            state.referenceUri?.let { reference ->
+                                ReferenceFrameEditor(
+                                    uri = reference,
+                                    frame = state.detectedFrame,
+                                    onFrameChange = vm::setManualReferenceFrame
+                                )
                             }
                             Button(onClick = vm::detectReferenceFrame, enabled = state.referenceUri != null, modifier = Modifier.fillMaxWidth()) {
                                 Icon(Icons.Rounded.AutoFixHigh, null); Spacer(Modifier.width(7.dp)); Text("تشخیص خودکار کادر با OpenCV")
