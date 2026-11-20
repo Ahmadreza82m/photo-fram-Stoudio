@@ -39,7 +39,8 @@ data class SavedProject(
     val name: String,
     val images: List<SelectedImage>,
     val outputFolder: Uri?,
-    val adjustments: FrameAdjustments
+    val adjustments: FrameAdjustments,
+    val referenceUri: Uri? = null
 )
 
 data class DetectedFrame(val left: Int, val top: Int, val right: Int, val bottom: Int, val confidence: Double, val imageWidth: Int, val imageHeight: Int)

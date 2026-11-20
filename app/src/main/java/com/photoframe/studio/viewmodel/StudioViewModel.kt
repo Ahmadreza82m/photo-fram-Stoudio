@@ -35,7 +35,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
     fun saveCurrentProject() {
         val current = _state.value
         if (current.images.isEmpty()) { _state.value = current.copy(notice = "برای ذخیره پروژه ابتدا تصاویر را انتخاب کن."); return }
-        val project = SavedProject(UUID.randomUUID().toString(), current.projectName.trim().ifBlank { "پروژه بدون نام" }, current.images, current.outputFolder, current.adjustments)
+        val project = SavedProject(UUID.randomUUID().toString(), current.projectName.trim().ifBlank { "پروژه بدون نام" }, current.images, current.outputFolder, current.adjustments, current.referenceUri)
         val updated = current.savedProjects + project
         _state.value = current.copy(savedProjects = updated, notice = "پروژه «${project.name}» ذخیره شد.")
         persistProjects(updated)
@@ -45,7 +45,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         val project = _state.value.savedProjects.firstOrNull { it.id == id } ?: return
         project.images.forEach { image -> runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(image.uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
         project.outputFolder?.let { uri -> runCatching { getApplication<Application>().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } }
-        _state.value = _state.value.copy(projectName = project.name, images = project.images, outputFolder = project.outputFolder, adjustments = project.adjustments, report = null, notice = "پروژه «${project.name}» باز شد.")
+        _state.value = _state.value.copy(projectName = project.name, images = project.images, outputFolder = project.outputFolder, adjustments = project.adjustments, referenceUri = project.referenceUri, referenceName = project.referenceUri?.let { runCatching { repository.imageInfo(it).name }.getOrNull() }, report = null, notice = "پروژه «${project.name}» باز شد.")
         saveAdjustments(project.adjustments)
     }
 
@@ -53,7 +53,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         val array = JSONArray()
         projects.forEach { project ->
             val obj = JSONObject().put("id", project.id).put("name", project.name)
-                .put("output", project.outputFolder?.toString())
+                .put("output", project.outputFolder?.toString()).put("reference", project.referenceUri?.toString())
                 .put("topCrop", project.adjustments.top.cropPx).put("topExtend", project.adjustments.top.extendPx)
                 .put("bottomCrop", project.adjustments.bottom.cropPx).put("bottomExtend", project.adjustments.bottom.extendPx)
                 .put("leftCrop", project.adjustments.left.cropPx).put("leftExtend", project.adjustments.left.extendPx)
@@ -78,14 +78,14 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
                 SelectedImage(Uri.parse(item.getString("uri")), item.optString("name", "image"), item.optLong("bytes", 0L))
             }.getOrNull() }
             val a = FrameAdjustments(
-                top = EdgeRule(obj.optInt("topCrop"), obj.optInt("topExtend")),
-                bottom = EdgeRule(obj.optInt("bottomCrop"), obj.optInt("bottomExtend")),
-                left = EdgeRule(obj.optInt("leftCrop"), obj.optInt("leftExtend")),
-                right = EdgeRule(obj.optInt("rightCrop"), obj.optInt("rightExtend")),
+                top = EdgeRule(obj.optInt("topCrop"), obj.optInt("topExtend"), obj.optDouble("topCf", -1.0).takeIf { it >= 0.0 }?.toFloat(), obj.optDouble("topEf", -1.0).takeIf { it >= 0.0 }?.toFloat()),
+                bottom = EdgeRule(obj.optInt("bottomCrop"), obj.optInt("bottomExtend"), obj.optDouble("bottomCf", -1.0).takeIf { it >= 0.0 }?.toFloat(), obj.optDouble("bottomEf", -1.0).takeIf { it >= 0.0 }?.toFloat()),
+                left = EdgeRule(obj.optInt("leftCrop"), obj.optInt("leftExtend"), obj.optDouble("leftCf", -1.0).takeIf { it >= 0.0 }?.toFloat(), obj.optDouble("leftEf", -1.0).takeIf { it >= 0.0 }?.toFloat()),
+                right = EdgeRule(obj.optInt("rightCrop"), obj.optInt("rightExtend"), obj.optDouble("rightCf", -1.0).takeIf { it >= 0.0 }?.toFloat(), obj.optDouble("rightEf", -1.0).takeIf { it >= 0.0 }?.toFloat()),
                 format = ExportFormat.values().getOrElse(obj.optInt("format")) { ExportFormat.PNG },
                 jpegQuality = obj.optInt("quality", 96)
             )
-            SavedProject(obj.getString("id"), obj.optString("name", "پروژه"), images, obj.optString("output").takeIf { it.isNotBlank() && it != "null" }?.let(Uri::parse), a.safe())
+            SavedProject(obj.getString("id"), obj.optString("name", "پروژه"), images, obj.optString("output").takeIf { it.isNotBlank() && it != "null" }?.let(Uri::parse), a.safe(), obj.optString("reference").takeIf { it.isNotBlank() && it != "null" }?.let(Uri::parse))
         }
     }.getOrDefault(emptyList())
 
