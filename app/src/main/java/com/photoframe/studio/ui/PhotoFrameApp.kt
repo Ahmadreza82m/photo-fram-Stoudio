@@ -80,6 +80,7 @@ fun PhotoFrameApp(vm: StudioViewModel = viewModel()) {
                                             Text(project.images.size.toString() + " تصویر", color = Color(0xFF9EB4D0), style = MaterialTheme.typography.labelSmall)
                                         }
                                         TextButton(onClick = { vm.openSavedProject(project.id) }) { Text("باز کردن") }
+                                        TextButton(onClick = { vm.deleteSavedProject(project.id) }) { Text("حذف") }
                                     }
                                 }
                             }
