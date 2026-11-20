@@ -143,11 +143,12 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
                     val candidate = ReferenceFrameDetector.detect(bitmap) ?: error("کادر واضحی پیدا نشد؛ مختصات را دستی تنظیم کن.")
                     val scaleX = originalW.toFloat() / bitmap.width
                     val scaleY = originalH.toFloat() / bitmap.height
-                    val mapped = candidate.copy(
+                    val mapped = DetectedFrame(
                         left = (candidate.left * scaleX).toInt(),
                         top = (candidate.top * scaleY).toInt(),
                         right = (candidate.right * scaleX).toInt(),
                         bottom = (candidate.bottom * scaleY).toInt(),
+                        confidence = candidate.confidence,
                         imageWidth = originalW,
                         imageHeight = originalH
                     )
