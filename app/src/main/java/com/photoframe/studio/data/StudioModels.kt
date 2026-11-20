@@ -6,7 +6,9 @@ enum class ExportFormat { PNG, JPEG }
 
 data class EdgeRule(
     val cropPx: Int = 0,
-    val extendPx: Int = 0
+    val extendPx: Int = 0,
+    val cropFraction: Float? = null,
+    val extendFraction: Float? = null
 )
 
 data class FrameAdjustments(
@@ -24,7 +26,7 @@ data class FrameAdjustments(
     )
 }
 
-private fun EdgeRule.safe() = copy(cropPx = cropPx.coerceIn(0, 20000), extendPx = extendPx.coerceIn(0, 20000))
+private fun EdgeRule.safe() = copy(cropPx = cropPx.coerceIn(0, 20000), extendPx = extendPx.coerceIn(0, 20000), cropFraction = cropFraction?.coerceIn(0f, 0.95f), extendFraction = extendFraction?.coerceIn(0f, 0.95f))
 
 data class SelectedImage(val uri: Uri, val name: String, val bytes: Long = 0L)
 

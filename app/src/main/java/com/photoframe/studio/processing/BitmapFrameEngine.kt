@@ -40,14 +40,14 @@ class BitmapFrameEngine(private val resolver: ContentResolver) {
         try {
             val sx = input.width.toFloat() / originalW
             val sy = input.height.toFloat() / originalH
-            val cropL = (settings.left.cropPx * sx).toInt()
-            val cropR = (settings.right.cropPx * sx).toInt()
-            val cropT = (settings.top.cropPx * sy).toInt()
-            val cropB = (settings.bottom.cropPx * sy).toInt()
-            val padL = (settings.left.extendPx * sx).toInt()
-            val padR = (settings.right.extendPx * sx).toInt()
-            val padT = (settings.top.extendPx * sy).toInt()
-            val padB = (settings.bottom.extendPx * sy).toInt()
+            val cropL = ((settings.left.cropFraction?.times(originalW) ?: settings.left.cropPx) * sx).toInt()
+            val cropR = ((settings.right.cropFraction?.times(originalW) ?: settings.right.cropPx) * sx).toInt()
+            val cropT = ((settings.top.cropFraction?.times(originalH) ?: settings.top.cropPx) * sy).toInt()
+            val cropB = ((settings.bottom.cropFraction?.times(originalH) ?: settings.bottom.cropPx) * sy).toInt()
+            val padL = ((settings.left.extendFraction?.times(originalW) ?: settings.left.extendPx) * sx).toInt()
+            val padR = ((settings.right.extendFraction?.times(originalW) ?: settings.right.extendPx) * sx).toInt()
+            val padT = ((settings.top.extendFraction?.times(originalH) ?: settings.top.extendPx) * sy).toInt()
+            val padB = ((settings.bottom.extendFraction?.times(originalH) ?: settings.bottom.extendPx) * sy).toInt()
 
             val src = Rect(cropL, cropT, input.width - cropR, input.height - cropB)
             if (src.width() <= 0 || src.height() <= 0) throw IOException("مقدار برش از اندازه تصویر بیشتر است")

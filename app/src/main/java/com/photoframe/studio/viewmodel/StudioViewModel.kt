@@ -94,10 +94,10 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         val frame = _state.value.detectedFrame ?: return
         val old = _state.value.adjustments
         updateAdjustments(old.copy(
-            left = old.left.copy(cropPx = frame.left),
-            top = old.top.copy(cropPx = frame.top),
-            right = old.right.copy(cropPx = (frame.imageWidth - frame.right).coerceAtLeast(0)),
-            bottom = old.bottom.copy(cropPx = (frame.imageHeight - frame.bottom).coerceAtLeast(0))
+            left = old.left.copy(cropPx = frame.left, cropFraction = frame.left.toFloat() / frame.imageWidth),
+            top = old.top.copy(cropPx = frame.top, cropFraction = frame.top.toFloat() / frame.imageHeight),
+            right = old.right.copy(cropPx = (frame.imageWidth - frame.right).coerceAtLeast(0), cropFraction = (frame.imageWidth - frame.right).toFloat() / frame.imageWidth),
+            bottom = old.bottom.copy(cropPx = (frame.imageHeight - frame.bottom).coerceAtLeast(0), cropFraction = (frame.imageHeight - frame.bottom).toFloat() / frame.imageHeight)
         ))
         _state.value = _state.value.copy(detectionMessage = "مختصات پیشنهادی اعمال شد؛ مقادیر چهارطرفه را بازبینی کن.")
     }
